@@ -75,16 +75,10 @@ class WhisperModel(faster_whisper.WhisperModel):
 
         return text
 
-    def encode(self, features: np.ndarray) -> ctranslate2.StorageView:
-        # When the model is running on multiple GPUs, the encoder output should be moved
-        # to the CPU since we don't know which GPU will handle the next job.
-        to_cpu = self.model.device == "cuda" and len(self.model.device_index) > 1
-        # unsqueeze if batch size = 1
-        if len(features.shape) == 2:
-            features = np.expand_dims(features, 0)
-        features = faster_whisper.transcribe.get_ctranslate2_storage(features)
-
-        return self.model.encode(features, to_cpu=to_cpu)
+    def encode(self, features: Union[np.ndarray, torch.Tensor]) -> ctranslate2.StorageView:
+        if isinstance(features, np.ndarray):
+            features = torch.from_numpy(features)
+        return super().encode(features)
 
 class FasterWhisperPipeline(Pipeline):
     """
